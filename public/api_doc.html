@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>长话短说 API 文档</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked@11.1.0/lib/marked.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markdown.min.js"></script>
+    <style>
+        .markdown-body {
+            box-sizing: border-box;
+            min-width: 200px;
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 45px;
+        }
+        @media (max-width: 767px) {
+            .markdown-body {
+                padding: 15px;
+            }
+        }
+        .markdown-body h1 { @apply text-4xl font-bold mb-8 pb-2 border-b; }
+        .markdown-body h2 { @apply text-3xl font-bold mt-8 mb-4; }
+        .markdown-body h3 { @apply text-2xl font-semibold mt-6 mb-3; }
+        .markdown-body p { @apply mb-4 leading-7; }
+        .markdown-body ul { @apply list-disc pl-8 mb-4; }
+        .markdown-body li { @apply mb-2; }
+        .markdown-body code { @apply px-1 py-0.5 rounded bg-gray-100; }
+        .markdown-body pre { @apply p-4 mb-4 rounded overflow-x-auto; }
+        .markdown-body pre code { @apply bg-transparent p-0; }
+        .markdown-body blockquote { @apply pl-4 border-l-4 border-gray-300 text-gray-600; }
+        .markdown-body table { @apply w-full mb-4 border-collapse; }
+        .markdown-body th, .markdown-body td { @apply border p-2; }
+        .markdown-body th { @apply bg-gray-100; }
+        .markdown-body a { @apply text-blue-600 hover:underline; }
+        #toc { @apply fixed left-4 top-4 w-64 p-4 bg-white rounded-lg shadow-lg overflow-y-auto max-h-screen; }
+        #toc ul { @apply list-none pl-4; }
+        #toc li { @apply mb-2; }
+        #toc a { @apply text-gray-700 hover:text-blue-600 text-sm; }
+        .toc-h2 { @apply pl-2; }
+        .toc-h3 { @apply pl-4; }
+        @media (max-width: 1280px) {
+            #toc {
+                @apply hidden;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <nav id="toc" class="hidden xl:block"></nav>
+    <div class="markdown-body bg-white shadow-lg" id="content">
+        正在加载文档...
+    </div>
+
+    <script>
+        async function loadMarkdown() {
+            try {
+                const response = await fetch('/docs/api.md');
+                const text = await response.text();
+                
+                // 等待 marked 加载完成
+                if (typeof marked === 'undefined') {
+                    console.error('Marked library not loaded');
+                    document.getElementById('content').innerHTML = '加载 Marked 库失败，请刷新页面重试';
+                    return;
+                }
+
+                // 配置 marked
+                marked.use({
+                    mangle: false,
+                    headerIds: true,
+                    gfm: true
+                });
+
+                // 渲染内容
+                const content = marked.parse(text);
+                document.getElementById('content').innerHTML = content;
+
+                // 生成目录
+                const toc = document.getElementById('toc');
+                const headings = document.querySelectorAll('h1, h2, h3');
+                const tocHtml = [];
+
+                headings.forEach(heading => {
+                    const title = heading.textContent;
+                    const id = title.toLowerCase().replace(/[^a-zA-Z0-9]+/g, '-');
+                    heading.id = id;
+                    
+                    const level = heading.tagName.toLowerCase();
+                    tocHtml.push(`<li class="toc-${level}"><a href="#${id}">${title}</a></li>`);
+                });
+
+                toc.innerHTML = `<ul>${tocHtml.join('')}</ul>`;
+
+                // 高亮代码
+                Prism.highlightAll();
+
+                // 平滑滚动
+                document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                    anchor.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        document.querySelector(this.getAttribute('href')).scrollIntoView({
+                            behavior: 'smooth'
+                        });
+                    });
+                });
+
+            } catch (error) {
+                console.error('加载文档失败:', error);
+                document.getElementById('content').innerHTML = `加载文档失败: ${error.message}`;
+            }
+        }
+
+        // 确保在 DOM 和所有脚本加载完成后再执行
+        window.addEventListener('load', loadMarkdown);
+    </script>
+</body>
+</html>

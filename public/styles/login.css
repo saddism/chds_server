@@ -1,0 +1,80 @@
+/* 自定义样式 */
+.message-success {
+    color: #059669;
+}
+
+.message-error {
+    color: #dc2626;
+}
+
+/* 输入框验证样式 */
+input:invalid {
+    border-color: #ef4444;
+}
+
+/* 加载状态样式 */
+.loading {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* 消息动画 */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.message-show {
+    display: block !important;
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* 验证码按钮倒计时样式 */
+.countdown {
+    background-color: #9ca3af !important;
+    cursor: not-allowed;
+}
+
+/* 验证码输入框组样式 */
+.code-input-group {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.code-input {
+    flex: 1;
+    min-width: 0;
+}
+
+/* SMS调试信息样式 */
+#smsDebug {
+    font-family: monospace;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+#smsDebug .space-y-2 > div {
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+#smsDebug .font-medium {
+    color: #4B5563;
+    font-weight: 500;
+}
+
+#smsError {
+    background-color: rgba(239, 68, 68, 0.05) !important;
+}
+
+/* 调试信息动画 */
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+#smsDebug:not(.hidden) {
+    animation: slideDown 0.4s ease-out;
+}
