@@ -1,154 +1,107 @@
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('[状态页面] 开始初始化检查');
     
-    // 检查是否在Chrome扩展环境中
-    const isInExtension = !!(window.chrome && chrome.runtime && chrome.runtime.sendMessage);
-    console.log('[状态页面] Chrome扩展环境:', isInExtension);
+    // 环境配置
+    const EXTENSION_ID = 'jbipifegmbaljbkfambickjajngcmhjl';
+    const loginUrl = '/login.html';
+
+    // 检查是否从登录页面来
+    const urlParams = new URLSearchParams(window.location.search);
+    const fromLogin = urlParams.get('from') === 'login';
+    console.log('[状态页面] URL参数:', window.location.search);
+
+    if (fromLogin) {
+        console.log('[状态页面] 检测到从登录页面跳转，1秒后将刷新页面');
+        // 显示加载提示
+        document.querySelector('.container').innerHTML = `
+            <div class="bg-white rounded-lg shadow-lg p-6 max-w-md mx-auto">
+                <div class="text-center">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-2">正在加载用户信息</h2>
+                    <p class="text-gray-600">请稍候...</p>
+                </div>
+            </div>
+        `;
+        
+        // 移除from参数并刷新
+        urlParams.delete('from');
+        const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+        setTimeout(() => {
+            window.location.replace(newUrl);
+        }, 1000);
+        return;
+    }
 
     // 获取 DOM 元素
     const userPhone = document.getElementById('phoneNumber');
     const memberStatus = document.getElementById('memberStatus');
     const expiryDate = document.getElementById('expiryDate');
-    const logoutBtn = document.getElementById('logoutButton');
+    const logoutButton = document.getElementById('logoutButton');
 
-    if (!userPhone || !memberStatus || !expiryDate || !logoutBtn) {
+    if (!userPhone || !memberStatus || !expiryDate || !logoutButton) {
         console.error('[状态页面] 无法找到必要的 DOM 元素');
         return;
     }
 
-    // 获取登录信息
-    let userData = null;
-
-    if (isInExtension) {
-        console.log('[状态页面] 从扩展获取数据');
-        try {
-            const result = await new Promise((resolve) => {
-                chrome.runtime.sendMessage({ type: 'GET_USER_DATA' }, (response) => {
-                    console.log('[状态页面] 扩展返回数据:', response);
-                    resolve(response);
-                });
-            });
-            
-            if (result && result.success) {
-                userData = result.data;
-            }
-        } catch (error) {
-            console.error('[状态页面] 从扩展获取数据失败:', error);
-        }
-    }
-
-    // 如果从扩展获取失败或不在扩展环境，尝试从localStorage获取
-    if (!userData) {
-        console.log('[状态页面] 从localStorage获取数据');
-        userData = {
+    // 检查本地存储数据
+    const checkLocalStorage = () => {
+        const data = {
             token: localStorage.getItem('token'),
             userid: localStorage.getItem('userid'),
             phone_num: localStorage.getItem('phone_num'),
             is_member: localStorage.getItem('is_member'),
             expiry_date: localStorage.getItem('expiry_date')
         };
-    }
+        console.log('[状态页面] 检查本地数据:', {
+            hasToken: !!data.token,
+            userid: data.userid
+        });
+        return data;
+    };
 
-    console.log('[状态页面] 获取到的用户数据:', userData);
+    // 从localStorage获取用户数据
+    console.log('[状态页面] 开始从localStorage获取数据');
+    let userData = checkLocalStorage();
 
-    if (!userData.token || !userData.userid) {
-        console.error('[状态页面] 本地存储数据无效');
-        localStorage.clear();
-        window.location.href = '/login.html';
+    // 如果没有token，跳转到登录页
+    if (!userData.token) {
+        console.log('[状态页面] 未找到token，准备跳转');
+        //window.location.href = loginUrl;
         return;
     }
 
     try {
-        console.log('[状态页面] 开始验证token');
+        // 验证token
         const response = await fetch('/auth/verify-token', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${userData.token}`,
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userData.token}`
             }
         });
 
+        if (!response.ok) {
+            throw new Error('Token验证失败');
+        }
+
         const data = await response.json();
-        console.log('[状态页面] token验证结果:', data);
-
-        if (!data.success) {
-            console.log('[状态页面] token验证失败:', data.message);
-            
-            // 如果是 token 过期或无效，才清除存储
-            if (data.debugInfo?.errorCode === 'TOKEN_EXPIRED' || 
-                data.debugInfo?.errorCode === 'INVALID_TOKEN') {
-                console.log('[状态页面] token已过期或无效，清除存储');
-                localStorage.clear();
-                
-                // 如果在扩展环境中，发送清除消息
-                if (isInExtension) {
-                    chrome.runtime.sendMessage({ type: 'CLEAR_USER_DATA' }, (response) => {
-                        console.log('[状态页面] 扩展清除数据响应:', response);
-                    });
-                }
-            }
-            
-            // window.location.href = '/login.html';
-            console.log('[状态页面] 验证失败 - 暂时不跳转');
-            return;
-        }
-
-        // 更新用户信息显示
+        
+        // 更新显示
         userPhone.textContent = userData.phone_num || '未知';
-        memberStatus.textContent = userData.is_member === 'true' ? '是' : '否';
+        memberStatus.textContent = userData.is_member === 'true' ? '会员' : '非会员';
         expiryDate.textContent = userData.expiry_date || '无';
-
-        // 使用服务器返回的最新数据更新 localStorage
-        if (data.user) {
-            // 保持现有的 token
-            if (data.token) {
-                localStorage.setItem('token', data.token);
-            }
-            localStorage.setItem('userid', String(data.user.userid));
-            localStorage.setItem('phone_num', data.user.phone_num);
-            localStorage.setItem('is_member', String(data.user.is_paid));
-            localStorage.setItem('expiry_date', data.user.valid_date || '');
-            
-            console.log('[状态页面] localStorage已更新:', {
-                token: localStorage.getItem('token') ? '存在' : '不存在',
-                userid: localStorage.getItem('userid'),
-                phone_num: localStorage.getItem('phone_num'),
-                is_member: localStorage.getItem('is_member'),
-                expiry_date: localStorage.getItem('expiry_date')
-            });
-        }
         
         console.log('[状态页面] 用户信息已更新');
         
     } catch (error) {
         console.error('[状态页面] 验证token失败:', error);
-        
-        // 清除本地存储
         localStorage.clear();
-        
-        // 如果在扩展环境中，发送清除消息
-        if (isInExtension) {
-            chrome.runtime.sendMessage({ type: 'CLEAR_USER_DATA' }, (response) => {
-                console.log('[状态页面] 扩展清除数据响应:', response);
-            });
-        }
-        
-        // window.location.href = '/login.html';
-        console.log('[状态页面] 验证失败 - 暂时不跳转');
+        window.location.href = loginUrl;
     }
 
-    // 退出登录按钮处理
-    logoutBtn.addEventListener('click', () => {
-        console.log('[状态页面] 用户点击退出登录');
-        localStorage.clear();
-        
-        if (isInExtension) {
-            chrome.runtime.sendMessage({ type: 'CLEAR_USER_DATA' }, (response) => {
-                console.log('[状态页面] 扩展清除数据响应:', response);
-                window.close();
-            });
-        } else {
-            window.location.href = '/login.html';
-        }
+    // 处理登出按钮点击
+    logoutButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        console.log('[状态页面] 用户点击登出按钮');
+        window.location.href = '/logout.html';
     });
 });

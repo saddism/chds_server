@@ -121,6 +121,9 @@ router.post('/login', async (req, res) => {
         success: true,
         token,
         userid: user.userid,
+        phone_num: user.phone_num,
+        is_member: user.is_paid,
+        expiry_date: user.valid_date,
         user: {
           userid: user.userid,
           phone_num: user.phone_num,
@@ -195,6 +198,9 @@ router.post('/login', async (req, res) => {
       success: true,
       token,
       userid: user.userid,
+      phone_num: user.phone_num,
+      is_member: user.is_paid,
+      expiry_date: user.valid_date,
       user: {
         userid: user.userid,
         phone_num: user.phone_num,

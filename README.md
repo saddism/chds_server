@@ -56,3 +56,13 @@ The project uses:
 - Postgres.js for database operations
 - JWT for authentication
 - Nodemon for development
+
+##数据格式
+本地用户信息的储存格式是
+{
+    token: string,        // 用户登录令牌
+    userid: string,       // 用户ID
+    phone_num: string,    // 手机号
+    is_member: boolean,   // 是否是会员
+    expiry_date: string   // 会员过期时间
+}
