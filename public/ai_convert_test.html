@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 文本处理测试</title>
+    <style>
+        body {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: vertical;
+        }
+        .options {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        .option-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .result {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            min-height: 100px;
+            white-space: pre-wrap;
+            background-color: #f9f9f9;
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+        .loading {
+            display: none;
+            color: #666;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI 文本处理测试</h1>
+        
+        <div>
+            <h3>输入文本：</h3>
+            <textarea id="input" placeholder="请输入要处理的文本..."></textarea>
+        </div>
+
+        <div class="options">
+            <div class="option-group">
+                <input type="checkbox" id="needSummary" checked>
+                <label for="needSummary">需要总结</label>
+            </div>
+
+            <div class="option-group">
+                <input type="checkbox" id="needTranslate" checked>
+                <label for="needTranslate">需要翻译</label>
+            </div>
+
+            <div class="option-group">
+                <label for="summaryLevel">总结长度：</label>
+                <select id="summaryLevel">
+                    <option value="5">很长 (500字)</option>
+                    <option value="4">长 (300字)</option>
+                    <option value="3" selected>中等 (200字)</option>
+                    <option value="2">短 (100字)</option>
+                    <option value="1">很短 (50字)</option>
+                </select>
+            </div>
+        </div>
+
+        <button id="process" onclick="processText()">处理文本</button>
+
+        <div id="loading" class="loading">处理中，请稍候...</div>
+
+        <div>
+            <h3>处理结果：</h3>
+            <div id="result" class="result"></div>
+        </div>
+
+        <div id="error" class="error"></div>
+    </div>
+
+    <script>
+        async function processText() {
+            const input = document.getElementById('input').value.trim();
+            const needSummary = document.getElementById('needSummary').checked;
+            const needTranslate = document.getElementById('needTranslate').checked;
+            const summaryLevel = parseInt(document.getElementById('summaryLevel').value);
+            
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            const error = document.getElementById('error');
+            const processButton = document.getElementById('process');
+
+            // 清空之前的结果和错误
+            result.textContent = '';
+            error.textContent = '';
+
+            // 验证输入
+            if (!input) {
+                error.textContent = '请输入要处理的文本';
+                return;
+            }
+
+            if (!needSummary && !needTranslate) {
+                error.textContent = '请至少选择一种处理方式（总结或翻译）';
+                return;
+            }
+
+            try {
+                // 显示加载状态
+                loading.style.display = 'block';
+                processButton.disabled = true;
+
+                const response = await fetch('/ai/process', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        content: input,
+                        needSummary,
+                        needTranslate,
+                        summaryLevel
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    result.textContent = data.data;
+                } else {
+                    throw new Error(data.error || '处理失败');
+                }
+            } catch (err) {
+                error.textContent = '错误：' + err.message;
+            } finally {
+                // 隐藏加载状态
+                loading.style.display = 'none';
+                processButton.disabled = false;
+            }
+        }
+
+        // 监听输入框的变化来启用/禁用处理按钮
+        document.getElementById('input').addEventListener('input', function() {
+            const processButton = document.getElementById('process');
+            processButton.disabled = !this.value.trim();
+        });
+
+        // 初始禁用处理按钮
+        document.getElementById('process').disabled = true;
+    </script>
+</body>
+</html>

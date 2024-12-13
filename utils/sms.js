@@ -66,7 +66,7 @@ export function verifyCode(phone_num, code) {
             phone_num,
             inputCode: code,
             storedCode: storedData?.code,
-            timestamp: storedData?.timestamp,
+            timestamp: storedData?.timestamp || 0,
             currentTime: Date.now(),
             isExpired: false,
             timeRemaining: 0

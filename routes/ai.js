@@ -122,4 +122,64 @@ router.get('/chat/:chatId/messages', async (req, res) => {
     }
 });
 
+// 一键处理接口
+router.post('/process', async (req, res) => {
+    try {
+        const { content, needSummary, needTranslate, summaryLevel = 3 } = req.body;
+
+        if (!content) {
+            return res.status(400).json({
+                success: false,
+                error: '内容不能为空'
+            });
+        }
+
+        // 根据总结级别设置字数限制
+        const lengthMap = {
+            5: 500,
+            4: 300,
+            3: 200,
+            2: 100,
+            1: 50
+        };
+
+        // 构建提示词
+        let prompt = '';
+        if (needSummary && needTranslate) {
+            prompt = `请对以下内容进行总结（字数限制在${lengthMap[summaryLevel]}字以内）并将结果翻译成英文：\n${content}`;
+        } else if (needSummary) {
+            prompt = `请总结以下内容，字数限制在${lengthMap[summaryLevel]}字以内：\n${content}`;
+        } else if (needTranslate) {
+            prompt = `请将以下内容翻译成英文：\n${content}`;
+        } else {
+            return res.status(400).json({
+                success: false,
+                error: '至少需要选择一种处理方式'
+            });
+        }
+
+        // 调用 AI 处理
+        const result = await aiFactory.sendMessage('coze', prompt);
+        
+        if (!result) {
+            return res.status(500).json({
+                success: false,
+                error: '处理失败'
+            });
+        }
+
+        return res.json({
+            success: true,
+            data: result
+        });
+
+    } catch (error) {
+        console.error('处理文本失败:', error);
+        return res.status(500).json({
+            success: false,
+            error: error.message || '处理失败'
+        });
+    }
+});
+
 export default router;

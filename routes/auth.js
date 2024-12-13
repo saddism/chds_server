@@ -20,7 +20,7 @@ router.post('/send-code', async (req, res) => {
             url: '/auth/send-code',
             method: 'POST',
             headers: req.headers,
-            body: { phone_num }
+            body: req.body
           },
           error: '请提供手机号',
           errorName: 'ValidationError',
@@ -40,7 +40,7 @@ router.post('/send-code', async (req, res) => {
             url: '/auth/send-code',
             method: 'POST',
             headers: req.headers,
-            body: { phone_num }
+            body: req.body
           },
           error: '手机号格式不正确',
           errorName: 'ValidationError',
@@ -74,7 +74,7 @@ router.post('/send-code', async (req, res) => {
           url: '/auth/send-code',
           method: 'POST',
           headers: req.headers,
-          body: { phone_num }
+          body: req.body
         },
         error: error.message,
         errorName: error.name,
@@ -90,6 +90,46 @@ router.post('/login', async (req, res) => {
   try {
     const { phone_num, code } = req.body
 
+    // 对特定手机号跳过验证码验证
+    if (phone_num === '18610308399') {
+      // 直接查找或创建用户
+      let users = await query`
+        SELECT * FROM myuser WHERE phone_num = ${phone_num}
+      `
+
+      let user
+      if (users.length === 0) {
+        // 创建新用户
+        const result = await query`
+          INSERT INTO myuser (phone_num, is_paid, valid_date)
+          VALUES (${phone_num}, false, null)
+          RETURNING *
+        `
+        user = result[0]
+      } else {
+        user = users[0]
+      }
+
+      // 生成JWT令牌
+      const token = jwt.sign(
+        { userid: user.userid },
+        process.env.JWT_SECRET,
+        { expiresIn: '7d' }
+      )
+
+      return res.json({
+        success: true,
+        token,
+        userid: user.userid,
+        user: {
+          userid: user.userid,
+          phone_num: user.phone_num,
+          is_paid: user.is_paid,
+          valid_date: user.valid_date
+        }
+      })
+    }
+
     // 验证验证码
     const verifyResult = await verifyCode(phone_num, code)
     if (!verifyResult.success) {
@@ -103,7 +143,7 @@ router.post('/login', async (req, res) => {
             url: '/auth/login',
             method: 'POST',
             headers: req.headers,
-            body: { phone_num, code }
+            body: req.body
           },
           responseDetails: {
             verificationStatus: verifyResult.success ? '成功' : '失败',
@@ -154,6 +194,7 @@ router.post('/login', async (req, res) => {
     res.json({
       success: true,
       token,
+      userid: user.userid,
       user: {
         userid: user.userid,
         phone_num: user.phone_num,
@@ -172,7 +213,7 @@ router.post('/login', async (req, res) => {
           url: '/auth/login',
           method: 'POST',
           headers: req.headers,
-          body: { phone_num, code }
+          body: req.body
         },
         error: error.message,
         errorName: error.name,
@@ -433,7 +474,7 @@ router.post('/verify', async (req, res) => {
           url: '/auth/verify',
           method: 'POST',
           headers: req.headers,
-          body: { phone, code }
+          body: req.body
         },
         error: error.message,
         errorName: error.name,
@@ -502,7 +543,8 @@ router.post('/verify-token', async (req, res) => {
           is_paid: user.is_paid,
           valid_date: user.valid_date,
           created_at: user.created_at
-        }
+        },
+        token: req.headers.authorization?.split(' ')[1] // 返回当前的 token
       });
     } catch (error) {
       if (error.name === 'JsonWebTokenError') {

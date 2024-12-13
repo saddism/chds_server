@@ -9,6 +9,7 @@
   - [用户登录](#用户登录)
   - [验证 Token](#验证-token)
   - [更新付费状态](#更新付费状态)
+  - [AI 文本处理](#ai-文本处理)
 - [错误处理](#错误处理)
 - [使用示例](#使用示例)
 - [最佳实践](#最佳实践)
@@ -357,6 +358,129 @@ Content-Type: application/json
   }
 }
 ```
+
+### AI 文本处理
+
+一键处理文本内容（总结/翻译）。
+
+- **接口**: `/api/ai/process`
+- **方法**: `POST`
+- **认证**: 需要
+
+#### 请求参数
+| 参数名 | 必选 | 类型 | 说明 |
+|--------|------|------|------|
+| content | 是 | string | 需要处理的文本内容 |
+| needSummary | 是 | boolean | 是否需要总结 |
+| needTranslate | 是 | boolean | 是否需要翻译 |
+| summaryLevel | 否 | number | 总结长度档位（5最长，1最短），默认3 |
+
+#### 总结长度档位说明
+
+| 档位 | 说明 | 字数限制 |
+|------|------|----------|
+| 5 | 很长 | 500字 |
+| 4 | 长 | 300字 |
+| 3 | 中等 | 200字 |
+| 2 | 短 | 100字 |
+| 1 | 很短 | 50字 |
+
+#### 请求示例
+```json
+{
+  "content": "要处理的文本内容...",
+  "needSummary": true,
+  "needTranslate": true,
+  "summaryLevel": 3
+}
+```
+
+#### 返回示例
+
+成功响应：
+```json
+{
+  "success": true,
+  "data": "AI 处理后的内容"
+}
+```
+
+错误响应：
+```json
+{
+  "success": false,
+  "error": "错误信息"
+}
+```
+
+#### 调用示例
+
+```javascript
+// 使用 fetch
+async function processText(text) {
+  try {
+    const response = await fetch('/ai/process', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        content: text,
+        needSummary: true,    // 需要总结
+        needTranslate: true,  // 需要翻译
+        summaryLevel: 3       // 中等长度
+      })
+    });
+
+    const result = await response.json();
+    if (result.success) {
+      return result.data;
+    } else {
+      throw new Error(result.error);
+    }
+  } catch (error) {
+    console.error('处理失败:', error);
+    throw error;
+  }
+}
+
+// 使用 axios
+async function processText(text) {
+  try {
+    const response = await axios.post('/ai/process', {
+      content: text,
+      needSummary: true,
+      needTranslate: true,
+      summaryLevel: 3
+    });
+
+    if (response.data.success) {
+      return response.data.data;
+    } else {
+      throw new Error(response.data.error);
+    }
+  } catch (error) {
+    console.error('处理失败:', error);
+    throw error;
+  }
+}
+```
+
+#### 注意事项
+
+1. 必须至少选择一种处理方式（总结或翻译）
+2. 如果 `needSummary` 为 false，则 `summaryLevel` 参数无效
+3. 翻译默认为中译英或英译中（自动检测源语言）
+4. 建议控制输入文本长度在 4000 字以内
+5. 如果同时选择总结和翻译，会先总结再翻译
+
+#### 测试页面
+
+可以访问 `/ai_convert_test.html` 来测试接口功能，包含：
+- 文本输入框
+- 处理选项（总结/翻译）
+- 总结长度选择
+- 实时结果显示
 
 ## 错误处理
 
@@ -837,7 +961,9 @@ chrome.storage.local.remove(['token', 'userid'], () => {
    async function sendVerificationCode(phone) {
        const response = await fetch('/auth/send-code', {
            method: 'POST',
-           headers: { 'Content-Type': 'application/json' },
+           headers: {
+               'Content-Type': 'application/json'
+           },
            body: JSON.stringify({ phone_num: phone })
        });
        // 处理响应...
@@ -847,7 +973,9 @@ chrome.storage.local.remove(['token', 'userid'], () => {
    async function login(phone, code) {
        const response = await fetch('/auth/login', {
            method: 'POST',
-           headers: { 'Content-Type': 'application/json' },
+           headers: {
+               'Content-Type': 'application/json'
+           },
            body: JSON.stringify({ phone_num: phone, code })
        });
        // 处理响应...
