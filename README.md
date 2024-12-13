@@ -1,68 +1,78 @@
-# Short Story Backend API
+# 长话短说后台服务
 
-A Node.js backend API that provides user authentication and content modification services.
+这是长话短说 Chrome 扩展的后台服务，提供用户认证和会员管理功能。
 
-## Features
+## 功能特性
 
-- User authentication with phone number and verification code
-- User status management (paid/unpaid status)
-- Content modification API (translation and shortening)
-- Database integration with Supabase
+- 用户认证
+  - 手机号登录
+  - 验证码验证
+  - 会员状态管理
+- 安全性
+  - JWT 令牌认证
+  - 安全的数据传输
+- 扩展集成
+  - 与 Chrome 扩展无缝集成
+  - 实时状态同步
 
-## Setup
+## 技术栈
 
-1. Install dependencies:
+- 后端：Node.js
+- 前端：原生 JavaScript
+- 数据存储：localStorage
+- 通信：postMessage API
+
+## 目录结构
+
+```
+public/
+├── images/          # 图片资源
+├── scripts/         # JavaScript 文件
+│   ├── login.js     # 登录逻辑
+│   ├── logout.js    # 登出逻辑
+│   └── status.js    # 状态页面逻辑
+├── styles/          # CSS 样式文件
+├── login.html       # 登录页面
+├── logout.html      # 登出页面
+└── status.html      # 状态页面
+```
+
+## 开发指南
+
+1. 克隆仓库：
+```bash
+git clone https://github.com/yourusername/changhuaduanshuo.git
+cd changhuaduanshuo
+```
+
+2. 安装依赖：
 ```bash
 npm install
 ```
 
-2. Create a `.env` file with the following variables:
-```
-DATABASE_URL=your_database_url
-JWT_SECRET=your_jwt_secret
-```
-
-3. Create the database tables:
-- Run the SQL commands in `schema.sql` in your Supabase SQL editor
-
-4. Start the development server:
+3. 启动开发服务器：
 ```bash
 npm run dev
 ```
 
-## API Endpoints
+4. 访问：
+- 登录页面：http://localhost:3000/login.html
+- 状态页面：http://localhost:3000/status.html
 
-### Authentication
+## API 文档
 
-- POST `/auth/login`
-  - Body: `{ phone, verificationCode }`
-  - Returns: JWT token and user info
+### 发送验证码
+- 端点：`/auth/send-code`
+- 方法：POST
+- 参数：`{ phone_num: string }`
+- 响应：`{ success: boolean, message?: string }`
 
-- GET `/auth/status`
-  - Headers: `Authorization: Bearer <token>`
-  - Returns: User status
+### 登录验证
+- 端点：`/auth/verify`
+- 方法：POST
+- 参数：`{ phone_num: string, code: string }`
+- 响应：`{ success: boolean, token?: string, ... }`
 
-### Content Modification
+## 许可证
 
-- POST `/api/modify`
-  - Headers: `Authorization: Bearer <token>`
-  - Body: `{ content, translate, shorten }`
-  - Returns: Modified content
-
-## Development
-
-The project uses:
-- Express.js for the web server
-- Postgres.js for database operations
-- JWT for authentication
-- Nodemon for development
-
-##数据格式
-本地用户信息的储存格式是
-{
-    token: string,        // 用户登录令牌
-    userid: string,       // 用户ID
-    phone_num: string,    // 手机号
-    is_member: boolean,   // 是否是会员
-    expiry_date: string   // 会员过期时间
-}
+MIT License
